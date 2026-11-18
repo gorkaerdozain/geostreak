@@ -11,7 +11,8 @@
     "check": "vp check",
     "lint": "vp lint",
     "fmt": "vp fmt",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "data": "bun scripts/build-countries.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -36,7 +37,8 @@
     "shadcn": "^4.23.0",
     "typescript": "^7.0.2",
     "vite": "npm:@voidzero-dev/vite-plus-core@8.3.8000",
-    "vite-plus": "1.7.0"
+    "vite-plus": "1.7.0",
+    "world-countries": "5.1.0"
   },
   "overrides": {
     "vite": "npm:@voidzero-dev/vite-plus-core@8.3.8000"

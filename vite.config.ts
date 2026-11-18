@@ -59,6 +59,7 @@ export default defineConfig({
       "dist/",
       "bun.lock",
       ".claude/",
+      "src/data/",
     ],
   },
 })
