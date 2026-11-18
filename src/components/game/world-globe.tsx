@@ -338,8 +338,7 @@ export function WorldGlobe({
           >
             <span
               className={cn(
-                "flex items-center gap-1.5 rounded-full bg-popover/90 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-popover-foreground shadow-md ring-1 ring-foreground/10 backdrop-blur-md transition-[opacity,scale] duration-300",
-                isHovered && "scale-105",
+                "flex items-center gap-1.5 rounded-full bg-popover/90 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-popover-foreground shadow-md ring-1 ring-foreground/10 backdrop-blur-md transition-opacity duration-300",
                 hovered && !isHovered && "opacity-25"
               )}
             >

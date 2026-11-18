@@ -30,6 +30,7 @@ Branch: `main`. Delivery strategy: `ask-on-risk`. Test runner: `bun run test` (V
 | T6  | S9         | inline | done   | ranking dialog; stats, runs and round history in `game.test.ts`       |
 | T7  | S7, S10    | inline | done   | Motion animations, win/loss celebration                               |
 | T8  | S11        | inline | done   | settings popover, theme, ⌘K                                           |
+| T9  | S4         | inline | done   | label blur on hover fixed (live retouch)                              |
 
 ## Log
 
@@ -39,3 +40,4 @@ Branch: `main`. Delivery strategy: `ask-on-risk`. Test runner: `bun run test` (V
 - L4 Globe: cobe 2 draws its own world map as a spherical Fibonacci lattice with limb fading. Guessed countries become cobe markers on the same lattice points (`src/game/dots.ts` mirrors the shader), and labels use cobe's CSS anchors (`--cobe-visible-*` drives opacity and blur). cobe has no render loop or controls: the component drives `update()` from `requestAnimationFrame` with time-based rotation, drag, wheel/pinch zoom, a 900 ms focus flight and an entry animation.
 - L5 Extra facts: REST Countries v3.1 is retired and v5 needs a key, so the drawer reads Wikidata SPARQL + the Wikipedia REST summary (no key, CORS enabled), with a skeleton while loading.
 - L6 Ranking: a streak enters the top list when it ends (a lost round); the in-progress streak and the last 20 rounds are persisted so the dialog is never empty after playing.
+- L7 User: "en las etiquetas ... cuando te pones encima ... se ve como blur durante 1s". Cause: transitioning `scale` on text animates a rasterised layer; `will-change: transform` would keep it blurry. Fix: no scale on hover.
