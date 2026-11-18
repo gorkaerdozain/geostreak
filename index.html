@@ -4,7 +4,27 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>vite-app</title>
+    <title>GeoStreak</title>
+    <!-- Apply the theme and backdrop before the first paint (no white/black flash). -->
+    <script>
+      try {
+        const stored = localStorage.getItem("theme")
+        // Light by default; "system" follows the OS.
+        const dark =
+          stored === "dark" ||
+          (stored === "system" &&
+            matchMedia("(prefers-color-scheme: dark)").matches)
+        document.documentElement.classList.add(dark ? "dark" : "light")
+      } catch {}
+    </script>
+    <style>
+      html {
+        background: oklch(0.985 0.004 240);
+      }
+      html.dark {
+        background: oklch(0.16 0.01 260);
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

@@ -122,9 +122,82 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background: var(--backdrop);
+    background-attachment: fixed;
   }
   html {
     @apply font-sans;
   }
+}
+
+/* GeoStreak backdrop: a dotted "map paper" that follows the theme. */
+:root {
+  --backdrop-paper: oklch(0.985 0.004 240);
+  --backdrop-dot: oklch(0.72 0.03 250 / 0.55);
+  --backdrop-vignette: oklch(0.93 0.02 245);
+  --backdrop:
+    radial-gradient(
+      circle at center,
+      transparent 35%,
+      var(--backdrop-vignette) 100%
+    ),
+    radial-gradient(circle, var(--backdrop-dot) 1px, transparent 1.6px) 0 0 /
+      22px 22px,
+    var(--backdrop-paper);
+}
+
+.dark {
+  --backdrop-paper: oklch(0.16 0.01 260);
+  --backdrop-dot: oklch(0.55 0.03 255 / 0.4);
+  --backdrop-vignette: oklch(0.11 0.01 260);
+}
+
+/* Used by shadcn primitives (ComboboxList) and our scroll areas. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Fades the edges of a scroll container only where there is more content. */
+@property --fade-top {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --fade-bottom {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes scroll-fade-y {
+  from {
+    --fade-top: 0px;
+    --fade-bottom: 1.5rem;
+  }
+  10%,
+  90% {
+    --fade-top: 1.5rem;
+    --fade-bottom: 1.5rem;
+  }
+  to {
+    --fade-top: 1.5rem;
+    --fade-bottom: 0px;
+  }
+}
+
+@utility scroll-fade-y {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--fade-top),
+    #000 calc(100% - var(--fade-bottom)),
+    transparent 100%
+  );
+  animation: scroll-fade-y linear both;
+  animation-timeline: scroll(self);
 }
