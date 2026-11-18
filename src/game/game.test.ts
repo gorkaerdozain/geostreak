@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vite-plus/test"
 
-import { createDeck, createGame, gameReducer, type GameState } from "./game"
+import {
+  MAX_HISTORY,
+  createDeck,
+  createGame,
+  gameReducer,
+  type GameState,
+} from "./game"
 import { makeCountry } from "./test-fixtures"
 
 const countries = [
@@ -120,5 +126,105 @@ describe("guessing", () => {
     expect(next.status).toBe("playing")
     expect(next.guesses).toEqual([])
     expect(next.streak).toBe(1)
+  })
+})
+
+const win = (state: GameState, now = 1) =>
+  gameReducer(state, { type: "guess", code: state.target, byCode, now })
+
+function loseRound(state: GameState, now = 2) {
+  let next = state
+  for (const code of codes.filter((c) => c !== state.target)) {
+    next = gameReducer(next, { type: "guess", code, byCode, now })
+  }
+  return next
+}
+
+describe("ranking stats", () => {
+  it("counts played and won rounds with the attempts of each win", () => {
+    let state = win(start())
+    state = gameReducer(state, { type: "next" }, noShuffle)
+    state = loseRound(state)
+    expect(state.stats).toEqual({ played: 2, won: 1, winAttempts: 1 })
+  })
+
+  it("records the run with its countries when a streak ends", () => {
+    let state = win(start())
+    const first = state.target
+    state = gameReducer(state, { type: "next" }, noShuffle)
+    state = win(state)
+    const second = state.target
+    state = gameReducer(state, { type: "next" }, noShuffle)
+    state = loseRound(state, 42)
+    expect(state.runs).toEqual([
+      { streak: 2, countries: [first, second], endedAt: 42 },
+    ])
+  })
+
+  it("does not record empty runs", () => {
+    const state = loseRound(start())
+    expect(state.runs).toEqual([])
+  })
+
+  it("keeps only the top runs, best first", () => {
+    let state: GameState = {
+      ...start(),
+      runs: Array.from({ length: 10 }, (_, i) => ({
+        streak: i + 1,
+        countries: [],
+        endedAt: i,
+      })).toReversed(),
+    }
+    state = win(state)
+    state = gameReducer(state, { type: "next" }, noShuffle)
+    state = win(state)
+    state = gameReducer(state, { type: "next" }, noShuffle)
+    state = loseRound(state)
+    expect(state.runs.map((r) => r.streak)).toEqual([
+      10, 9, 8, 7, 6, 5, 4, 3, 2, 2,
+    ])
+  })
+})
+
+describe("round history", () => {
+  it("records every finished round, newest first", () => {
+    let state = win(start(), 10)
+    const first = state.target
+    state = gameReducer(state, { type: "next" }, noShuffle)
+    const second = state.target
+    state = loseRound(state, 20)
+    expect(state.history).toEqual([
+      { code: second, won: false, attempts: 3, endedAt: 20 },
+      { code: first, won: true, attempts: 1, endedAt: 10 },
+    ])
+  })
+
+  it("keeps only the latest rounds", () => {
+    let state = start()
+    for (let i = 0; i < MAX_HISTORY + 5; i++) {
+      state = gameReducer(win(state, i), { type: "next" }, noShuffle)
+    }
+    expect(state.history).toHaveLength(MAX_HISTORY)
+    expect(state.history[0].endedAt).toBe(MAX_HISTORY + 4)
+  })
+})
+
+describe("restoring a profile", () => {
+  it("resumes an in-progress streak with its countries", () => {
+    const state = createGame({
+      codes,
+      streak: 2,
+      currentRun: ["AAA", "BBB"],
+      random: noShuffle,
+    })
+    expect(state.streak).toBe(2)
+    expect(state.currentRun).toEqual(["AAA", "BBB"])
+  })
+
+  it("restores the round history", () => {
+    const history = [{ code: "AAA", won: true, attempts: 2, endedAt: 5 }]
+    expect(createGame({ codes, history, random: noShuffle }).history).toEqual(
+      history
+    )
   })
 })

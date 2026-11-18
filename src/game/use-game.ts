@@ -6,22 +6,46 @@ import {
   gameReducer,
   type GameAction,
   type GameState,
+  type GameStats,
+  type RoundRecord,
+  type Run,
 } from "./game"
 
-const BEST_STREAK_KEY = "geostreak:best-streak"
+const PROFILE_KEY = "geostreak:profile"
 
-function readBestStreak() {
+interface Profile {
+  bestStreak: number
+  streak?: number
+  currentRun?: string[]
+  stats: GameStats
+  runs: Run[]
+  history?: RoundRecord[]
+}
+
+function isProfile(value: unknown): value is Profile {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "bestStreak" in value &&
+    "stats" in value &&
+    "runs" in value &&
+    Array.isArray(value.runs)
+  )
+}
+
+function readProfile(): Partial<Profile> {
   try {
-    return Number(localStorage.getItem(BEST_STREAK_KEY)) || 0
+    const parsed: unknown = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? "")
+    return isProfile(parsed) ? parsed : {}
   } catch {
-    return 0
+    return {}
   }
 }
 
 function initGame() {
   return createGame({
     codes: PLAYABLE_COUNTRIES.map((c) => c.code),
-    bestStreak: readBestStreak(),
+    ...readProfile(),
   })
 }
 
@@ -33,17 +57,31 @@ export function useGame() {
     initGame
   )
 
+  const { bestStreak, streak, currentRun, stats, runs, history } = state
   useEffect(() => {
     try {
-      localStorage.setItem(BEST_STREAK_KEY, String(state.bestStreak))
+      const profile: Profile = {
+        bestStreak,
+        streak,
+        currentRun,
+        stats,
+        runs,
+        history,
+      }
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(profile))
     } catch {
-      // Storage can be unavailable (private mode); the streak still works in memory.
+      // Storage can be unavailable (private mode); the game still works in memory.
     }
-  }, [state.bestStreak])
+  }, [bestStreak, streak, currentRun, stats, runs, history])
 
   const guess = useCallback(
     (code: string) =>
-      dispatch({ type: "guess", code, byCode: COUNTRIES_BY_CODE }),
+      dispatch({
+        type: "guess",
+        code,
+        byCode: COUNTRIES_BY_CODE,
+        now: Date.now(),
+      }),
     []
   )
   const next = useCallback(() => dispatch({ type: "next" }), [])

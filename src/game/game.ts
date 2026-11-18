@@ -17,11 +17,61 @@ export interface GameState {
   status: "playing" | "won" | "lost"
   streak: number
   bestStreak: number
+  /** Countries guessed in the current streak, in order. */
+  currentRun: string[]
+  stats: GameStats
+  /** Best finished streaks, best first. */
+  runs: Run[]
+  /** Latest finished rounds, newest first. */
+  history: RoundRecord[]
 }
 
+export interface RoundRecord {
+  code: string
+  won: boolean
+  attempts: number
+  endedAt: number
+}
+
+export const MAX_HISTORY = 20
+
+export interface GameStats {
+  played: number
+  won: number
+  /** Sum of attempts over won rounds, to compute the average. */
+  winAttempts: number
+}
+
+export interface Run {
+  streak: number
+  countries: string[]
+  endedAt: number
+}
+
+export const MAX_RUNS = 10
+
 export type GameAction =
-  | { type: "guess"; code: string; byCode: Map<string, Country> }
+  | {
+      type: "guess"
+      code: string
+      byCode: Map<string, Country>
+      /** Timestamp used when a streak ends. */
+      now?: number
+    }
   | { type: "next" }
+
+const EMPTY_STATS: GameStats = { played: 0, won: 0, winAttempts: 0 }
+
+function addRun(runs: Run[], run: Run): Run[] {
+  if (run.streak === 0) return runs
+  return [...runs, run]
+    .toSorted((a, b) => b.streak - a.streak || a.endedAt - b.endedAt)
+    .slice(0, MAX_RUNS)
+}
+
+function addRound(history: RoundRecord[], round: RoundRecord) {
+  return [round, ...history].slice(0, MAX_HISTORY)
+}
 
 /** Fisher–Yates shuffle that returns a new array. */
 export function createDeck(codes: string[], random: Random): string[] {
@@ -52,11 +102,21 @@ export function createGame({
   codes,
   maxAttempts = 10,
   bestStreak = 0,
+  streak = 0,
+  currentRun = [],
+  stats = EMPTY_STATS,
+  runs = [],
+  history = [],
   random = Math.random,
 }: {
   codes: string[]
   maxAttempts?: number
   bestStreak?: number
+  streak?: number
+  currentRun?: string[]
+  stats?: GameStats
+  runs?: Run[]
+  history?: RoundRecord[]
   random?: Random
 }): GameState {
   const { target, deck } = drawTarget(codes, [], null, random)
@@ -67,8 +127,12 @@ export function createGame({
     guesses: [],
     maxAttempts,
     status: "playing",
-    streak: 0,
+    streak,
     bestStreak,
+    currentRun,
+    stats,
+    runs,
+    history,
   }
 }
 
@@ -91,6 +155,12 @@ export function gameReducer(
         { code: action.code, distanceKm: borderDistanceKm(guessed, target) },
       ]
 
+      const round = {
+        code: state.target,
+        attempts: guesses.length,
+        endedAt: action.now ?? 0,
+      }
+
       if (action.code === state.target) {
         const streak = state.streak + 1
         return {
@@ -99,11 +169,31 @@ export function gameReducer(
           status: "won",
           streak,
           bestStreak: Math.max(state.bestStreak, streak),
+          currentRun: [...state.currentRun, state.target],
+          stats: {
+            played: state.stats.played + 1,
+            won: state.stats.won + 1,
+            winAttempts: state.stats.winAttempts + guesses.length,
+          },
+          history: addRound(state.history, { ...round, won: true }),
         }
       }
 
       if (guesses.length >= state.maxAttempts) {
-        return { ...state, guesses, status: "lost", streak: 0 }
+        return {
+          ...state,
+          guesses,
+          status: "lost",
+          streak: 0,
+          currentRun: [],
+          stats: { ...state.stats, played: state.stats.played + 1 },
+          runs: addRun(state.runs, {
+            streak: state.streak,
+            countries: state.currentRun,
+            endedAt: action.now ?? 0,
+          }),
+          history: addRound(state.history, { ...round, won: false }),
+        }
       }
 
       return { ...state, guesses }
@@ -116,8 +206,16 @@ export function gameReducer(
         state.target,
         random
       )
-      const streak = state.status === "playing" ? 0 : state.streak
-      return { ...state, target, deck, guesses: [], status: "playing", streak }
+      const skipped = state.status === "playing"
+      return {
+        ...state,
+        target,
+        deck,
+        guesses: [],
+        status: "playing",
+        streak: skipped ? 0 : state.streak,
+        currentRun: skipped ? [] : state.currentRun,
+      }
     }
 
     default:
