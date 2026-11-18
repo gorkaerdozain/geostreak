@@ -26,6 +26,7 @@ export default defineConfig({
       "dist",
       "src/components/ui",
       "src/components/theme-provider.tsx",
+      ".claude",
     ],
     rules: {
       "react/react-in-jsx-scope": "off",
@@ -52,6 +53,12 @@ export default defineConfig({
       stylesheet: "src/index.css",
       functions: ["cn", "cva"],
     },
-    ignorePatterns: ["node_modules/", "coverage/", "dist/", "bun.lock"],
+    ignorePatterns: [
+      "node_modules/",
+      "coverage/",
+      "dist/",
+      "bun.lock",
+      ".claude/",
+    ],
   },
 })
